@@ -1,0 +1,8 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connexion TikTok</title><link rel="stylesheet" href="style.css"></head>
+<body><h1>Connexion TikTok</h1><div id="out">Lecture du code…</div>
+<script>
+const p=new URLSearchParams(location.search),o=document.getElementById('out'),c=p.get('code');
+if(c){o.innerHTML='<p>Code reçu. Copie toute l\'adresse de cette page et colle-la dans le terminal.</p><p><code></code></p><button>Copier l\'adresse</button>';
+o.querySelector('code').textContent=location.href;o.querySelector('button').onclick=()=>navigator.clipboard.writeText(location.href);}
+else{o.textContent='Aucun code : '+(p.get('error_description')||p.get('error')||'connexion annulée.');}
+</script></body></html>
