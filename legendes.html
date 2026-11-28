@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Légendes</title>
+<style>
+:root{--bg:#101418;--card:#1B2128;--fg:#F2F4F7;--muted:#9AA3AE;--accent:#FFD400;--btn:#2E6BFF}
+@media (prefers-color-scheme:light){:root{--bg:#F4F5F7;--card:#fff;--fg:#101418;--muted:#5B6470}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:22px;margin:4px 0 4px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:12px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{border:0;border-radius:999px;padding:8px 14px;background:var(--card);color:var(--fg);font-weight:600}
+.tabs button.on{background:var(--accent);color:#101418}
+.post{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;margin-bottom:6px;flex-wrap:wrap}
+.pill{background:var(--accent);color:#101418;border-radius:6px;padding:1px 8px;font-weight:700}
+.pill.video{background:#FF3C8E;color:#fff}
+.title{font-weight:700;margin-bottom:8px}
+.cap{white-space:pre-wrap;font-size:15px;margin-bottom:10px}
+.son{font-size:14px;margin-bottom:10px;color:var(--muted)}.son b{color:var(--fg)}
+.copy{width:100%;border:0;border-radius:10px;padding:12px;background:var(--btn);color:#fff;font-weight:700;font-size:16px}
+.copy.ok{background:#00A651}
+.empty{color:var(--muted)}
+</style>
+</head>
+<body>
+<h1>Légendes à copier</h1>
+<div class="sub">Les derniers posts envoyés (3 jours). Pour une vidéo, colle la légende dans l'éditeur TikTok.</div>
+<div class="tabs" id="tabs"></div>
+<div id="list"><div class="empty">Chargement…</div></div>
+<script>
+const NAMES = {actu: "Actu", foot: "Foot", rap: "Rap", clips: "Clips"};
+let all = [], filter = "tout";
+try { filter = localStorage.getItem("filtre") || "tout"; } catch (e) {}
+function fmt(ts) {
+  return new Date(ts * 1000).toLocaleString("fr-FR", {weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+}
+function render() {
+  const accounts = ["tout", ...new Set(all.map(x => x.account))];
+  document.getElementById("tabs").innerHTML = accounts.map(a =>
+    `<button class="${a === filter ? "on" : ""}" data-a="${a}">${a === "tout" ? "Tout" : (NAMES[a] || a)}</button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+    filter = b.dataset.a; try { localStorage.setItem("filtre", filter); } catch (e) {} render();
+  });
+  const rows = all.filter(x => filter === "tout" || x.account === filter).sort((a, b) => b.ts - a.ts);
+  const list = document.getElementById("list");
+  if (!rows.length) { list.innerHTML = '<div class="empty">Aucune légende pour l’instant.</div>'; return; }
+  list.innerHTML = "";
+  rows.forEach(x => {
+    const el = document.createElement("div");
+    el.className = "post";
+    el.innerHTML = `<div class="meta"><span class="pill ${x.kind === "vidéo" ? "video" : ""}"></span><span></span><span></span></div>
+      <div class="title"></div><div class="son"></div><div class="cap"></div><button class="copy">Copier la légende</button>`;
+    const m = el.querySelectorAll(".meta span");
+    m[0].textContent = x.kind; m[1].textContent = NAMES[x.account] || x.account; m[2].textContent = fmt(x.ts);
+    el.querySelector(".title").textContent = x.title;
+    el.querySelector(".cap").textContent = x.caption;
+    const son = el.querySelector(".son");
+    if (x.son) { son.innerHTML = "🎵 Son conseillé : <b></b>"; son.querySelector("b").textContent = x.son; } else { son.remove(); }
+    const btn = el.querySelector(".copy");
+    btn.onclick = async () => {
+      try { await navigator.clipboard.writeText(x.caption); }
+      catch (e) { const t = document.createElement("textarea"); t.value = x.caption; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+      btn.textContent = "Copiée ✓"; btn.classList.add("ok");
+      setTimeout(() => { btn.textContent = "Copier la légende"; btn.classList.remove("ok"); }, 1800);
+    };
+    list.appendChild(el);
+  });
+}
+fetch("legendes.json?" + Date.now()).then(r => r.ok ? r.json() : []).catch(() => []).then(d => { all = d; render(); });
+</script>
+</body>
+</html>
